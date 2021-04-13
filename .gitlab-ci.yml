@@ -1,0 +1,44 @@
+image: openjdk:15.0.2
+
+before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+  - chmod +x gradlew
+
+stages:
+  - build
+  - test
+  - deploy
+  
+
+build:
+  stage: build
+  script:
+    - ./gradlew assemble
+  tags:
+    - dalfcs_gitlab_docker_ci
+test:
+  stage: test
+  script:
+    - ./gradlew check
+  artifacts:
+    when: always
+    paths:
+      - build/test-results/test/**/TEST-*.xml
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+  tags:
+    - dalfcs_gitlab_docker_ci
+
+deploy:
+  stage: deploy
+  image: ruby:latest
+  script:
+    - gem install dpl
+    - dpl --provider=heroku --app=$HEROKU_APP_NAME_PRODUCTION --api-key=$HEROKU_API_KEY
+  environment:
+    name: staging
+    url: https://git.heroku.com/web-utility-app-test.git
+  only:
+    - branches
+  tags:
+    - dalfcs_gitlab_docker_ci
